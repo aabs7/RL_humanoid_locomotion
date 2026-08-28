@@ -10,3 +10,5 @@ wheels/
 .venv
 *.pth
 MUJOCO_LOG.TXT
+result.txt
+runs/
