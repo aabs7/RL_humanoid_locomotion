@@ -17,7 +17,7 @@ class PolicyNetwork(nn.Module):
 
     def forward(self, observations):
         logits = self.net(observations)
-        return torch.distributions.Categorical(logits=logits)
+        return torch.distributions.Categorical(logits=logits)   # hardcoded to discrete action space (not good)
 
     def get_log_probs(self, observations, actions):
         logits = self.forward(observations)
@@ -56,7 +56,7 @@ def collect_trajectory(env, policy_net, batch_size=5000, gamma=0.99):
     while True:
         obs_tensor = torch.tensor(obs, dtype=torch.float32)
         action_logits = policy_net(obs_tensor)
-        action = action_logits.sample().item()
+        action = action_logits.sample().item()   # hardcoded to discrete action space (not good)
 
         observations.append(obs)
         actions.append(action)

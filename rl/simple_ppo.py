@@ -6,7 +6,7 @@ from utils import PolicyNetwork, ValueNetwork, collect_trajectory, evaluate_poli
 def train_ppo(env, batch_size=5000, num_epochs=1000, gamma=0.99, lr=1e-3, policy_epochs=80, value_epochs=80, clip_eps=0.2):
     print(f"Training in {env.spec.id}")
     obs_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.n
+    action_dim = env.action_space.n  # hardcoded to discrete action (not good)
 
     policy_net = PolicyNetwork(obs_dim, action_dim)
     value_net = ValueNetwork(obs_dim)
