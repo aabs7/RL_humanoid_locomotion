@@ -36,7 +36,7 @@ class ValueNetwork(nn.Module):
         )
 
     def forward(self, observations):
-        return self.net(observations)
+        return self.net(observations).squeeze(-1)
 
 # discounted rewards to go
 def rewards_to_go(rewards, gamma=0.99):
