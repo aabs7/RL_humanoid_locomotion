@@ -38,6 +38,6 @@ def make_eval_env(env_id: str, seed: int=0, render_mode: str | None = None, **kw
         [lambda: gym.make(env_id, render_mode=render_mode, **kwargs)],
         autoreset_mode=gym.vector.AutoresetMode.NEXT_STEP
     )
-    envs = gym.wrappers.RecordEpisodeStatistics(env)
+    envs = gym.wrappers.vector.RecordEpisodeStatistics(env)
     envs.action_space.seed(seed + 10_000)
     return envs
