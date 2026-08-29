@@ -29,7 +29,7 @@ def make_envs(env_id: str,
     cls = gym.vector.AsyncVectorEnv if async_envs else gym.vector.SyncVectorEnv
     envs = cls(thunks, autoreset_mode=gym.vector.AutoresetMode.NEXT_STEP)
 
-    envs = gym.wrappers.RecordEpisodeStatistics(envs)  # records episode statistics in info dict
+    envs = gym.wrappers.vector.RecordEpisodeStatistics(envs)  # records episode statistics in info dict
     envs.action_space.seed(seed)
     return envs
 
