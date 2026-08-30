@@ -42,6 +42,29 @@ class CategoricalHead(nn.Module):
     def mode(d: Categorical) -> torch.Tensor:
         return d.probs.argmax(dim=-1)
 
+class GaussianHead(nn.Module):
+    def __init__(self, in_dim: int, out_dim: int, hidden=(64, 64)):
+        super().__init__()
+        self.net = mlp(in_dim, out_dim, hidden, out_std=0.01)
+        self.log_std = nn.Parameter(torch.zeros(out_dim))
+
+    def dist(self, obs: torch.Tensor) -> Normal:
+        mean = self.net(obs)
+        std = self.log_std.expand_as(mean).exp()  # handle batch size
+        return Normal(mean, std)
+
+    @staticmethod
+    def log_prob(d: Normal, action: torch.Tensor) -> torch.Tensor:
+        return d.log_prob(action).sum(-1)  # joint log prob (additive under independence)
+
+    @staticmethod
+    def entropy(d: Normal) -> torch.Tensor:
+        return d.entropy().sum(-1)
+
+    @staticmethod
+    def mode(d: Normal) -> torch.Tensor:
+        return d.mean  # mean is mode for gaussian
+
 
 class ActorCritic(nn.Module):
     def __init__(self, actor: nn.Module, critic: nn.Module):
@@ -72,8 +95,7 @@ def make_actor_critic(obs_space, act_space, hidden=(64, 64)) -> ActorCritic:
     if isinstance(act_space, gym.spaces.Discrete):
         actor = CategoricalHead(obs_dim, int(act_space.n), hidden)
     elif isinstance(act_space, gym.spaces.Box):
-        raise NotImplementedError("Continuous action spaces are not implemented yet."
-                                  "Create GaussianHead for continuous action spaces.")
+        actor = GaussianHead(obs_dim, act_space.shape[0], hidden)
     else:
         raise TypeError(f"Unsupported action space type: {type(act_space)}")
 
