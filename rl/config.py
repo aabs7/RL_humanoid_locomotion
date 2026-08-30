@@ -13,6 +13,7 @@ class PPOConfig:
     num_minibatches: int = 32
     target_kl: float | None = 0.02
     norm_adv: bool = True
+    anneal_lr: bool = True
 
 @dataclass
 class Config:
@@ -22,7 +23,7 @@ class Config:
     total_steps: int = 1_000_000
     seed: int = 42
     tag: str = ""
-    obs_norm: bool = True
+    obs_norm: bool = True  # not implemented yet
     async_envs: bool = False
     save_every: int = 10
     eval_every: int = 10

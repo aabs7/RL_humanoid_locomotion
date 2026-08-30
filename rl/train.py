@@ -34,6 +34,13 @@ def train(cfg: Config) -> None:
     global_step, best_return, t0 = 0, -float("inf"), time.time()
 
     for iteration in range(1, cfg.num_iterations + 1):
+
+        # Learning rate annealing
+        if cfg.ppo.anneal_lr:
+            frac = 1.0 - (iteration - 1.0) / cfg.num_iterations
+            for g in optimizer.param_groups:
+                g["lr"] = frac * cfg.ppo.lr
+
         for t in range(cfg.num_steps):  # collect trajectory
             global_step += cfg.num_envs
             buf.obs[t] = next_obs
