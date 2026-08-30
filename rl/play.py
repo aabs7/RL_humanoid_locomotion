@@ -48,7 +48,7 @@ def play(cfg: PlayConfig) -> None:
     env = make_eval_env(env_id, seed=cfg.seed, render_mode=render_mode)
     if cfg.record:
         import gymnasium as gym
-        env = gym.wrappers.vector.RecordVideo(env, str(Path(cfg.checkpoint).parent.parent /"videos_play"), name_prefix="play")
+        env = gym.wrappers.vector.RecordVideo(env, str(Path(cfg.checkpoint).parent.parent /"videos_play"), name_prefix="play", episode_trigger=lambda ep: True)
 
     agent = make_actor_critic(env.single_observation_space, env.single_action_space)
     restore(ckpt, agent, optimizer=None, restore_rng=False)
