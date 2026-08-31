@@ -23,7 +23,8 @@ class Config:
     total_steps: int = 1_000_000
     seed: int = 42
     tag: str = ""
-    obs_norm: bool = True  # not implemented yet
+    obs_norm: bool = True
+    reward_norm: bool = True
     async_envs: bool = False
     save_every: int = 10
     eval_every: int = 10

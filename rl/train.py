@@ -11,6 +11,7 @@ from rl.buffers import RolloutBuffer
 from rl.logger import Logger, EpisodeTracker
 from rl.algorithms.ppo import ppo_update
 from rl.checkpoint import save
+from rl.normalizers import ObsNormalizer, RewardNormalizer
 
 def train(cfg: Config) -> None:
     run_dir = create_run_dir(cfg)
@@ -27,9 +28,14 @@ def train(cfg: Config) -> None:
     buf = RolloutBuffer(cfg.num_steps, cfg.num_envs, envs.single_observation_space, envs.single_action_space, device)
     logger = Logger(run_dir, print_every=10)
     tracker = EpisodeTracker(window=100)
+    obs_norm = ObsNormalizer(shape=envs.single_observation_space.shape) if cfg.obs_norm else None
+    reward_norm = RewardNormalizer(num_envs=cfg.num_envs, gamma=cfg.ppo.gamma) if cfg.reward_norm else None
+
+    normalize_obs = lambda obs: obs_norm(obs) if obs_norm else obs
+    normalize_reward = lambda reward, dones: reward_norm(reward, dones) if reward_norm else reward
 
     obs_np, _ = envs.reset(seed=cfg.seed)
-    next_obs = torch.as_tensor(obs_np, device=device, dtype=torch.float32)
+    next_obs = torch.as_tensor(normalize_obs(obs_np), device=device, dtype=torch.float32)
     next_done = torch.zeros(cfg.num_envs, device=device, dtype=torch.bool)
     global_step, best_return, t0 = 0, -float("inf"), time.time()
 
@@ -56,12 +62,13 @@ def train(cfg: Config) -> None:
             obs_np, rewards, term, trunc, infos = envs.step(action.cpu().numpy())
             tracker.update(infos)
 
-            buf.rewards[t] = torch.as_tensor(rewards, device=device, dtype=torch.float32)
+            dones_np = np.logical_or(term, trunc).astype(np.float32)
+            buf.rewards[t] = torch.as_tensor(normalize_reward(rewards, dones_np), device=device, dtype=torch.float32)
             buf.terminated[t] = torch.as_tensor(term, device=device, dtype=torch.float32)
             buf.truncated[t] = torch.as_tensor(trunc, device=device, dtype=torch.float32)
 
-            next_obs = torch.as_tensor(obs_np, device=device, dtype=torch.float32)
-            next_done = torch.as_tensor(np.logical_or(term, trunc), device=device, dtype=torch.float32)
+            next_obs = torch.as_tensor(normalize_obs(obs_np), device=device, dtype=torch.float32)
+            next_done = torch.as_tensor(dones_np, device=device, dtype=torch.float32)
 
         with torch.no_grad():
             next_value = agent.value(next_obs)
@@ -72,14 +79,15 @@ def train(cfg: Config) -> None:
         for k, v in metrics.items():
             logger.log(k, v)
         tracker.log_to(logger)
-        logger.log("charts/SPS", global_step / (time.time() - t0))
+        logger.log("charts/SPS", cfg.batch_size / (time.time() - t0))
+        logger.log("charts/lr", optimizer.param_groups[0]["lr"])
         logger.log("charts/iteration", iteration)
         logger.dump(step=global_step)
 
 
         if iteration % cfg.save_every == 0:
             save(run_dir / "checkpoints" / "latest.pt",
-                 agent=agent, optimizer=optimizer, cfg=cfg, iteration=iteration, global_step=global_step)
+                 agent=agent, optimizer=optimizer, cfg=cfg, iteration=iteration, global_step=global_step, obs_rms=obs_norm.rms if obs_norm else None)
 
         if tracker.returns:
             mean_return = float(np.mean(tracker.returns))
@@ -87,6 +95,7 @@ def train(cfg: Config) -> None:
                 best_return = mean_return
                 save(run_dir / "checkpoints" / "best.pt",
                      agent=agent, optimizer=optimizer, cfg=cfg, iteration=iteration, global_step=global_step,
+                     obs_rms=obs_norm.rms if obs_norm else None,
                      extra={"return": mean_return})
 
     logger.close()
