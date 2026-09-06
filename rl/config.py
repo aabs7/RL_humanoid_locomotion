@@ -18,6 +18,8 @@ class PPOConfig:
 @dataclass
 class Config:
     env_id: str = "LunarLander-v3"
+    hidden: tuple[int, ...] = (64, 64)
+    log_std_init: float = 0.0
     num_envs: int = 1
     num_steps: int = 2048
     total_steps: int = 1_000_000

@@ -43,10 +43,10 @@ class CategoricalHead(nn.Module):
         return d.probs.argmax(dim=-1)
 
 class GaussianHead(nn.Module):
-    def __init__(self, in_dim: int, out_dim: int, hidden=(64, 64)):
+    def __init__(self, in_dim: int, out_dim: int, hidden=(64, 64), log_std_init: float = 0.0):
         super().__init__()
         self.net = mlp(in_dim, out_dim, hidden, out_std=0.01)
-        self.log_std = nn.Parameter(torch.zeros(out_dim))
+        self.log_std = nn.Parameter(torch.full((out_dim,), float(log_std_init)))
 
     def dist(self, obs: torch.Tensor) -> Normal:
         mean = self.net(obs)
@@ -89,13 +89,13 @@ class ActorCritic(nn.Module):
         return self.actor.mode(d)
 
 
-def make_actor_critic(obs_space, act_space, hidden=(64, 64)) -> ActorCritic:
+def make_actor_critic(obs_space, act_space, hidden=(64, 64), log_std_init: float=0.0) -> ActorCritic:
     obs_dim = obs_space.shape[0]
 
     if isinstance(act_space, gym.spaces.Discrete):
         actor = CategoricalHead(obs_dim, int(act_space.n), hidden)
     elif isinstance(act_space, gym.spaces.Box):
-        actor = GaussianHead(obs_dim, act_space.shape[0], hidden)
+        actor = GaussianHead(obs_dim, act_space.shape[0], hidden, log_std_init)
     else:
         raise TypeError(f"Unsupported action space type: {type(act_space)}")
 

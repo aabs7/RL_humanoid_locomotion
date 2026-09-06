@@ -53,7 +53,7 @@ def play(cfg: PlayConfig) -> None:
         import gymnasium as gym
         env = gym.wrappers.vector.RecordVideo(env, str(Path(cfg.checkpoint).parent.parent /"videos_play"), name_prefix="play", episode_trigger=lambda ep: True)
 
-    agent = make_actor_critic(env.single_observation_space, env.single_action_space)
+    agent = make_actor_critic(env.single_observation_space, env.single_action_space, hidden=tuple(train_cfg.get(("hidden", (64, 64)))), log_std_init=train_cfg.get("log_std_init", 0.0))
     obs_norm = ObsNormalizer(shape=env.single_observation_space.shape) if obs_rms else None
     restore(ckpt, agent, optimizer=None,
             obs_rms=obs_norm.rms if obs_norm else None, restore_rng=False)

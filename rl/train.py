@@ -25,7 +25,7 @@ def train(cfg: Config) -> None:
                      video_dir=run_dir / "videos",
                      async_envs=cfg.async_envs)
     print(f'vector env: {type(envs.env).__name__}')
-    agent = make_actor_critic(envs.single_observation_space, envs.single_action_space).to(device)
+    agent = make_actor_critic(envs.single_observation_space, envs.single_action_space, hidden=tuple(cfg.hidden), log_std_init=cfg.log_std_init).to(device)
     optimizer = torch.optim.Adam(agent.parameters(), lr=cfg.ppo.lr, eps=1e-5)
     buf = RolloutBuffer(cfg.num_steps, cfg.num_envs, envs.single_observation_space, envs.single_action_space, device)
     logger = Logger(run_dir, print_every=10)
@@ -84,6 +84,8 @@ def train(cfg: Config) -> None:
         logger.log("charts/SPS", global_step / (time.time() - t0))
         logger.log("charts/lr", optimizer.param_groups[0]["lr"])
         logger.log("charts/iteration", iteration)
+        if hasattr(agent.actor, "log_std"):
+            logger.log("charts/policy_std", float(agent.actor.log_std.exp().mean()))
         logger.dump(step=global_step)
 
 
