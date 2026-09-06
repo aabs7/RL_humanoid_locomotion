@@ -16,13 +16,15 @@ from rl.normalizers import ObsNormalizer, RewardNormalizer
 def train(cfg: Config) -> None:
     run_dir = create_run_dir(cfg)
     set_seed(cfg.seed)
+    torch.set_num_threads(1)  # use 1 core for cpu
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f'run {run_dir}\ndevice: {device} iterations {cfg.num_iterations} batch {cfg.batch_size}')
 
     envs = make_envs(cfg.env_id, cfg.num_envs, cfg.seed,
                      capture_video=cfg.capture_video,
-                     video_dir=run_dir / "videos")
-
+                     video_dir=run_dir / "videos",
+                     async_envs=cfg.async_envs)
+    print(f'vector env: {type(envs.env).__name__}')
     agent = make_actor_critic(envs.single_observation_space, envs.single_action_space).to(device)
     optimizer = torch.optim.Adam(agent.parameters(), lr=cfg.ppo.lr, eps=1e-5)
     buf = RolloutBuffer(cfg.num_steps, cfg.num_envs, envs.single_observation_space, envs.single_action_space, device)
@@ -79,7 +81,7 @@ def train(cfg: Config) -> None:
         for k, v in metrics.items():
             logger.log(k, v)
         tracker.log_to(logger)
-        logger.log("charts/SPS", cfg.batch_size / (time.time() - t0))
+        logger.log("charts/SPS", global_step / (time.time() - t0))
         logger.log("charts/lr", optimizer.param_groups[0]["lr"])
         logger.log("charts/iteration", iteration)
         logger.dump(step=global_step)
