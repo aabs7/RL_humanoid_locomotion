@@ -2,6 +2,13 @@
 from pathlib import Path
 import gymnasium as gym
 
+if "G1Walk-v0" not in gym.registry:
+    gym.register(
+        id="G1Walk-v0",
+        entry_point="rl.envs.g1:G1Env",
+        max_episode_steps=1000,
+    )
+
 def _single(env_id: str, idx: int, capture_video: bool, video_dir, **kwargs):
     '''returns a thunk that creates a single environment'''
     def thunk():

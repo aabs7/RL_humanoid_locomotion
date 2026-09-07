@@ -28,6 +28,7 @@ class Config:
     obs_norm: bool = True
     reward_norm: bool = True
     async_envs: bool = False
+    task: str = "B"    # A | B | C | D
     save_every: int = 10
     eval_every: int = 10
     capture_video: bool = False

@@ -20,12 +20,16 @@ def train(cfg: Config) -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f'run {run_dir}\ndevice: {device} iterations {cfg.num_iterations} batch {cfg.batch_size}')
 
+    env_kwargs = {"task": cfg.task} if cfg.env_id.startswith("G1") else {}
     envs = make_envs(cfg.env_id, cfg.num_envs, cfg.seed,
                      capture_video=cfg.capture_video,
                      video_dir=run_dir / "videos",
-                     async_envs=cfg.async_envs)
+                     async_envs=cfg.async_envs,
+                     **env_kwargs)
     print(f'vector env: {type(envs.env).__name__}')
+
     agent = make_actor_critic(envs.single_observation_space, envs.single_action_space, hidden=tuple(cfg.hidden), log_std_init=cfg.log_std_init).to(device)
+
     optimizer = torch.optim.Adam(agent.parameters(), lr=cfg.ppo.lr, eps=1e-5)
     buf = RolloutBuffer(cfg.num_steps, cfg.num_envs, envs.single_observation_space, envs.single_action_space, device)
     logger = Logger(run_dir, print_every=10)
